@@ -6,7 +6,7 @@ MEGA 公共链接下载器，针对 MEGA 匿名 API 与客户端加密做的一�
 | 目录 | 平台 | 技术栈 | 版本 |
 | --- | --- | --- | --- |
 | `megadl-rs` | Windows 桌面 | Rust + egui/eframe | v0.1.4 |
-| `android` | Android | 纯 Java + 原生 Activity | v0.2.3 |
+| `android` | Android | 纯 Java + 原生 Activity | v0.2.4 |
 
 `mega_proto` 是最早的 Python 协议原型，用于和逆向结论逐字段对照；
 `逆向分析笔记.md` 记录了对 MegaDownloader 1.8（MPRESS 壳）的静态分析结论。
@@ -22,4 +22,5 @@ MEGA 公共链接下载器，针对 MEGA 匿名 API 与客户端加密做的一�
 ## 快速开始
 
 桌面版编译与运行见 `megadl-rs/README.md`，安卓版构建与安装见 `android/README.md`。
+
 

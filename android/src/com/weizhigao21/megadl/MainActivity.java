@@ -14,6 +14,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.Manifest;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.DocumentsContract;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.util.TypedValue;
@@ -174,7 +178,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.addView(label("MegaDL", 20, TEXT, true));
-        titles.addView(label("MEGA 公共链接下载器 · v0.2.3", 11.5f, MUTED, false));
+        titles.addView(label("MEGA 公共链接下载器 · v0.2.4", 11.5f, MUTED, false));
         header.addView(titles, lp(-2, -2, 1f, 0, 0, 0));
         TextView logBtn = action("日志", v -> showLogs());
         logBtn.setPadding(dp(10), dp(6), dp(10), dp(6));
@@ -244,6 +248,8 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         savePath.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         savePath.setPadding(dp(8), 0, dp(8), 0);
         pathRow.addView(savePath, lp(0, -2, 1f, 0, 0, 0));
+        TextView openBtn = actionChip("打开", v -> openSaveFolder());
+        pathRow.addView(openBtn, lp(dp(52), dp(30), 0f, 0, 6, 0));
         TextView copyBtn = actionChip("复制", v -> {
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) {
@@ -251,7 +257,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
                 toast("路径已复制");
             }
         });
-        pathRow.addView(copyBtn, lp(dp(56), dp(30), 0f, 0, 0, 0));
+        pathRow.addView(copyBtn, lp(dp(52), dp(30), 0f, 0, 0, 0));
         card.addView(pathRow);
         return card;
     }
@@ -473,6 +479,28 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
     }
 
     // ------------------------------------------------------------ 下载
+
+    private void openSaveFolder() {
+        Uri folder = DocumentsContract.buildDocumentUri(
+                "com.android.externalstorage.documents", "primary:Download/MegaDL");
+        Intent view = new Intent(Intent.ACTION_VIEW);
+        view.setDataAndType(folder, "vnd.android.document/directory");
+        view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        try {
+            startActivity(view);
+        } catch (ActivityNotFoundException e) {
+            try {
+                Intent root = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("content://com.android.externalstorage.documents/root/primary"));
+                root.setType("vnd.android.document/directory");
+                root.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(root);
+                toast("已打开 Download 上级目录");
+            } catch (Exception ignored) {
+                toast("没有找到可用的文件管理器");
+            }
+        }
+    }
 
     private void startDownload() {
         if (busy || parsing) return;
@@ -750,5 +778,6 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         }
     }
 }
+
 
 

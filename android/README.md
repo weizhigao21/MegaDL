@@ -15,7 +15,7 @@ MEGA 公共链接下载器的安卓原生版，纯 Java + 原生 `Activity` + �
 - 文件/文件夹大小、类型图标、逐个文件状态（等待 / 直链 / 下载中 / 完成 / 失败 / 已停止）
 - 8 连接 × 3 文件并发，4MB 分块 Range 拉取，边收边 AES-CTR 解密写盘
 - 分块级重试（120ms 起指数退避 + 抖动，g / eu 主机互换）、停止、重名自动加序号
-- 速度约 1.6 秒指数平滑；成功后 `.part` 重命名为最终文件
+- 速度约 1.6 秒指数平滑；成功后一次性提交；保存路径旁提供“打开”，直接跳到系统文件管理器里的 MegaDL 目录
 
 ## 保存位置
 
@@ -53,7 +53,9 @@ adb shell am start -n com.weizhigao21.megadl/.MainActivity
 
 ## 版本
 
-v0.2.3 / versionCode 5，minSdk 24，targetSdk 34，申请 INTERNET 权限；
+v0.2.4 / versionCode 6，minSdk 24，targetSdk 34，申请 INTERNET 权限；
 Android 9 及以下额外申请存储权限。下载服务器可能返回 `http://` 直链，清单里开启了 `usesCleartextTraffic`。
+
+
 
 
