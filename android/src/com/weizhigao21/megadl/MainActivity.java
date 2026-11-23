@@ -170,7 +170,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.addView(label("MegaDL", 20, TEXT, true));
-        titles.addView(label("MEGA 公共链接下载器 · v0.2.1", 11.5f, MUTED, false));
+        titles.addView(label("MEGA 公共链接下载器 · v0.2.2", 11.5f, MUTED, false));
         header.addView(titles, lp(-2, -2, 1f, 0, 0, 0));
         TextView logBtn = action("日志", v -> showLogs());
         logBtn.setPadding(dp(10), dp(6), dp(10), dp(6));
@@ -738,3 +738,4 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         }
     }
 }
+

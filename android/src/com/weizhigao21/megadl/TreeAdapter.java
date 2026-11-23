@@ -1,7 +1,11 @@
 package com.weizhigao21.megadl;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -105,7 +109,7 @@ public class TreeAdapter extends BaseAdapter {
         holder.arrow.setVisibility(node.dir ? View.VISIBLE : View.INVISIBLE);
         holder.check.setText(checkGlyph(node));
         holder.check.setTextColor(checkColor(node));
-        holder.icon.setText(iconFor(node));
+        holder.icon.setKind(iconKind(node));
         holder.name.setText(node.name);
         holder.name.setTypeface(Typeface.create("sans-serif", node.dir ? Typeface.BOLD : Typeface.NORMAL));
         holder.name.setTextColor(TEXT);
@@ -160,25 +164,26 @@ public class TreeAdapter extends BaseAdapter {
         h.check.setPadding(dp(2), 0, dp(2), 0);
         row.addView(h.check, new LinearLayout.LayoutParams(dp(36), dp(44)));
 
-        h.icon = textView(16, MUTED, false);
-        h.icon.setGravity(Gravity.CENTER);
-        row.addView(h.icon, new LinearLayout.LayoutParams(dp(26), dp(44)));
+        h.icon = new TypeIcon(context);
+        row.addView(h.icon, new LinearLayout.LayoutParams(dp(28), dp(44)));
 
         h.name = textView(14, TEXT, false);
         h.name.setSingleLine(true);
         h.name.setEllipsize(TextUtils.TruncateAt.END);
+        h.name.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
+        nameLp.leftMargin = dp(4);
         row.addView(h.name, nameLp);
 
         h.size = textView(10.5f, MUTED, false);
         h.size.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        row.addView(h.size, new LinearLayout.LayoutParams(dp(92), dp(44)));
+        row.addView(h.size, new LinearLayout.LayoutParams(dp(84), dp(44)));
 
         h.state = textView(11, MUTED, false);
         h.state.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         h.state.setSingleLine(true);
         h.state.setEllipsize(TextUtils.TruncateAt.END);
-        row.addView(h.state, new LinearLayout.LayoutParams(dp(86), dp(44)));
+        row.addView(h.state, new LinearLayout.LayoutParams(dp(76), dp(44)));
 
         return row;
     }
@@ -187,6 +192,7 @@ public class TreeAdapter extends BaseAdapter {
         TextView tv = new TextView(context);
         tv.setTextSize(size);
         tv.setTextColor(color);
+        tv.setIncludeFontPadding(false);
         if (bold) tv.setTypeface(Typeface.DEFAULT_BOLD);
         return tv;
     }
@@ -264,15 +270,14 @@ public class TreeAdapter extends BaseAdapter {
         }
     }
 
-    private String iconFor(MegaApi.Node node) {
-        if (node.dir) return "📁";
+    private String iconKind(MegaApi.Node node) {
+        if (node.dir) return TypeIcon.FOLDER;
         String lower = node.name.toLowerCase(java.util.Locale.US);
-        if (lower.endsWith(".mp3") || lower.endsWith(".flac") || lower.endsWith(".ape") || lower.endsWith(".wav")) return "🎵";
-        if (lower.endsWith(".mp4") || lower.endsWith(".mkv") || lower.endsWith(".avi")) return "🎬";
-        if (lower.endsWith(".zip") || lower.endsWith(".rar") || lower.endsWith(".7z")) return "🗜";
-        if (lower.endsWith(".jpg") || lower.endsWith(".png") || lower.endsWith(".webp")) return "🖼";
-        if (lower.endsWith(".txt") || lower.endsWith(".log") || lower.endsWith(".cue")) return "📄";
-        return "📄";
+        if (lower.endsWith(".mp3") || lower.endsWith(".flac") || lower.endsWith(".ape") || lower.endsWith(".wav")) return TypeIcon.AUDIO;
+        if (lower.endsWith(".mp4") || lower.endsWith(".mkv") || lower.endsWith(".avi")) return TypeIcon.VIDEO;
+        if (lower.endsWith(".zip") || lower.endsWith(".rar") || lower.endsWith(".7z")) return TypeIcon.ARCHIVE;
+        if (lower.endsWith(".jpg") || lower.endsWith(".png") || lower.endsWith(".webp")) return TypeIcon.IMAGE;
+        return TypeIcon.DOC;
     }
 
     private int dp(float v) {
@@ -283,9 +288,125 @@ public class TreeAdapter extends BaseAdapter {
         View spacer;
         TextView arrow;
         TextView check;
-        TextView icon;
+        TypeIcon icon;
         TextView name;
         TextView size;
         TextView state;
     }
+
+    /** 自绘类型图标，避免依赖系统 emoji 字体（部分机型压缩包等字形缺失）。 */
+    static class TypeIcon extends View {
+        static final String FOLDER = "folder";
+        static final String AUDIO = "audio";
+        static final String VIDEO = "video";
+        static final String ARCHIVE = "archive";
+        static final String IMAGE = "image";
+        static final String DOC = "doc";
+
+        private static final int C_FOLDER = Color.rgb(0xE8, 0xA2, 0x2E);
+        private static final int C_FOLDER_DARK = Color.rgb(0xD3, 0x8C, 0x1C);
+        private static final int C_DOC = Color.rgb(0x93, 0xA1, 0xAB);
+        private static final int C_AUDIO = Color.rgb(0x7C, 0x5C, 0xFF);
+        private static final int C_VIDEO = Color.rgb(0xDF, 0x5F, 0x58);
+        private static final int C_ARCHIVE = Color.rgb(0xA5, 0x77, 0x3D);
+        private static final int C_IMAGE = Color.rgb(0x2A, 0xA3, 0x6B);
+
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path path = new Path();
+        private final RectF rect = new RectF();
+        private final float d;
+        private String kind = DOC;
+
+        TypeIcon(Context context) {
+            super(context);
+            d = context.getResources().getDisplayMetrics().density;
+        }
+
+        void setKind(String k) {
+            if (!kind.equals(k)) {
+                kind = k;
+                invalidate();
+            }
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float s = Math.min(d * 18f, Math.min(getWidth(), getHeight()) - d * 10f);
+            float left = (getWidth() - s) / 2f;
+            float top = (getHeight() - s) / 2f;
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setStrokeWidth(d * 1.6f);
+
+            if (FOLDER.equals(kind)) {
+                paint.setColor(C_FOLDER_DARK);
+                rect.set(left + s * 0.02f, top + s * 0.16f, left + s * 0.44f, top + s * 0.36f);
+                canvas.drawRoundRect(rect, s * 0.06f, s * 0.06f, paint);
+                paint.setColor(C_FOLDER);
+                rect.set(left, top + s * 0.28f, left + s, top + s);
+                canvas.drawRoundRect(rect, s * 0.1f, s * 0.1f, paint);
+            } else if (AUDIO.equals(kind)) {
+                paint.setColor(C_AUDIO);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setTypeface(Typeface.DEFAULT);
+                paint.setTextSize(s * 1.2f);
+                paint.setTextAlign(Paint.Align.CENTER);
+                Paint.FontMetrics fm = paint.getFontMetrics();
+                canvas.drawText("♪", left + s / 2f, top + s / 2f - (fm.ascent + fm.descent) / 2f, paint);
+                paint.setTextAlign(Paint.Align.LEFT);
+            } else if (VIDEO.equals(kind)) {
+                paint.setColor(C_VIDEO);
+                paint.setStyle(Paint.Style.STROKE);
+                rect.set(left + s * 0.04f, top + s * 0.1f, left + s * 0.96f, top + s * 0.9f);
+                canvas.drawRoundRect(rect, s * 0.14f, s * 0.14f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                path.reset();
+                path.moveTo(left + s * 0.38f, top + s * 0.32f);
+                path.lineTo(left + s * 0.38f, top + s * 0.68f);
+                path.lineTo(left + s * 0.7f, top + s * 0.5f);
+                path.close();
+                canvas.drawPath(path, paint);
+            } else if (ARCHIVE.equals(kind)) {
+                paint.setColor(C_ARCHIVE);
+                paint.setStyle(Paint.Style.STROKE);
+                rect.set(left + s * 0.06f, top + s * 0.12f, left + s * 0.94f, top + s * 0.94f);
+                canvas.drawRoundRect(rect, s * 0.1f, s * 0.1f, paint);
+                canvas.drawLine(left + s * 0.18f, top + s * 0.34f, left + s * 0.82f, top + s * 0.34f, paint);
+                canvas.drawLine(left + s * 0.5f, top + s * 0.34f, left + s * 0.5f, top + s * 0.82f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                rect.set(left + s * 0.4f, top + s * 0.4f, left + s * 0.6f, top + s * 0.46f);
+                canvas.drawRect(rect, paint);
+                rect.set(left + s * 0.4f, top + s * 0.54f, left + s * 0.6f, top + s * 0.6f);
+                canvas.drawRect(rect, paint);
+                rect.set(left + s * 0.4f, top + s * 0.68f, left + s * 0.6f, top + s * 0.74f);
+                canvas.drawRect(rect, paint);
+            } else if (IMAGE.equals(kind)) {
+                paint.setColor(C_IMAGE);
+                paint.setStyle(Paint.Style.STROKE);
+                rect.set(left + s * 0.04f, top + s * 0.12f, left + s * 0.96f, top + s * 0.9f);
+                canvas.drawRoundRect(rect, s * 0.1f, s * 0.1f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                path.reset();
+                path.moveTo(left + s * 0.14f, top + s * 0.78f);
+                path.lineTo(left + s * 0.42f, top + s * 0.42f);
+                path.lineTo(left + s * 0.62f, top + s * 0.66f);
+                path.lineTo(left + s * 0.74f, top + s * 0.56f);
+                path.lineTo(left + s * 0.88f, top + s * 0.78f);
+                path.close();
+                canvas.drawPath(path, paint);
+                canvas.drawCircle(left + s * 0.3f, top + s * 0.3f, s * 0.08f, paint);
+            } else {
+                paint.setColor(C_DOC);
+                paint.setStyle(Paint.Style.STROKE);
+                rect.set(left + s * 0.14f, top + s * 0.06f, left + s * 0.86f, top + s * 0.94f);
+                canvas.drawRoundRect(rect, s * 0.08f, s * 0.08f, paint);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(Color.rgb(0xC9, 0xD3, 0xD9));
+                canvas.drawRect(left + s * 0.3f, top + s * 0.36f, left + s * 0.7f, top + s * 0.42f, paint);
+                canvas.drawRect(left + s * 0.3f, top + s * 0.52f, left + s * 0.7f, top + s * 0.58f, paint);
+                canvas.drawRect(left + s * 0.3f, top + s * 0.68f, left + s * 0.58f, top + s * 0.74f, paint);
+            }
+        }
+    }
 }
+
