@@ -88,13 +88,13 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
-        root.setPadding(dp(12), dp(10), dp(12), dp(8));
+        root.setPadding(dp(14), dp(10), dp(14), dp(10));
         setContentView(root);
 
-        root.addView(buildHeader(), lp(-1, -2, 0, 6, 0, 0));
+        root.addView(buildHeader(), lp(-1, -2, 0, 4, 0, 8));
 
         LinearLayout linkCard = card();
-        linkCard.addView(label("链接", 13, TEXT, true));
+        linkCard.addView(label("链接", 13, TEXT, true), lp(-1, -2, 0, 0, 0, 8));
         LinearLayout inputRow = new LinearLayout(this);
         inputRow.setOrientation(LinearLayout.HORIZONTAL);
         inputRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -105,29 +105,31 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         input.setHintTextColor(MUTED);
         input.setHint("https://mega.nz/folder/… 或 /file/…");
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        input.setBackground(round(FIELD, 8, 0, 0));
-        input.setPadding(dp(10), dp(8), dp(10), dp(8));
-        inputRow.addView(input, lp(0, dp(42), 1f, 0, 8, 0));
+        input.setBackground(round(FIELD, 10, 1, BORDER));
+        input.setPadding(dp(12), dp(8), dp(12), dp(8));
+        inputRow.addView(input, lp(0, dp(44), 1f, 0, 8, 0));
         TextView paste = pill("粘贴", false, false);
+        paste.setTextSize(13);
         paste.setOnClickListener(v -> paste());
-        inputRow.addView(paste, lp(dp(58), dp(42), 0f, 0, 8, 0));
+        inputRow.addView(paste, lp(dp(62), dp(44), 0f, 0, 8, 0));
         TextView parse = pill("解析", true, false);
+        parse.setTextSize(14);
         parse.setOnClickListener(v -> doParse());
-        inputRow.addView(parse, lp(dp(66), dp(42), 0f, 0, 0, 0));
+        inputRow.addView(parse, lp(dp(74), dp(44), 0f, 0, 0, 0));
         linkCard.addView(inputRow);
-        root.addView(linkCard, lp(-1, -2, 0, 0, 0, 8));
+        root.addView(linkCard, lp(-1, -2, 0, 0, 0, 10));
 
         LinearLayout fileCard = card();
-        LinearLayout fileHead = new LinearLayout(this);
-        fileHead.setOrientation(LinearLayout.HORIZONTAL);
-        fileHead.setGravity(Gravity.CENTER_VERTICAL);
         fileSummary = label("文件", 13.5f, TEXT, true);
-        fileHead.addView(fileSummary, lp(0, dp(30), 1f, 0, 0, 0));
-        fileHead.addView(action("展开", v -> expandAll(true)), lp(-2, dp(30), 0f, 0, 6, 0));
-        fileHead.addView(action("收起", v -> expandAll(false)), lp(-2, dp(30), 0f, 0, 6, 0));
-        fileHead.addView(action("全选", v -> selectAll(true)), lp(-2, dp(30), 0f, 0, 6, 0));
-        fileHead.addView(action("全不选", v -> selectAll(false)), lp(-2, dp(30), 0f, 0, 0, 0));
-        fileCard.addView(fileHead);
+        fileCard.addView(fileSummary, lp(-1, dp(28), 0, 0, 0, 4));
+
+        LinearLayout fileActions = new LinearLayout(this);
+        fileActions.setOrientation(LinearLayout.HORIZONTAL);
+        fileActions.addView(actionChip("展开", v -> expandAll(true)), lp(0, dp(32), 1f, 0, 5, 0));
+        fileActions.addView(actionChip("收起", v -> expandAll(false)), lp(0, dp(32), 1f, 0, 5, 0));
+        fileActions.addView(actionChip("全选", v -> selectAll(true)), lp(0, dp(32), 1f, 0, 5, 0));
+        fileActions.addView(actionChip("全不选", v -> selectAll(false)), lp(0, dp(32), 1f, 0, 0, 0));
+        fileCard.addView(fileActions, lp(-1, -2, 0, 0, 0, 6));
 
         list = new ListView(this);
         list.setDivider(null);
@@ -137,6 +139,12 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         adapter = new TreeAdapter(this, this);
         list.setAdapter(adapter);
         fileCard.addView(list, lp(-1, 0, 1f, 0, 0, 0));
+
+        TextView emptyHint = label("粘贴 MEGA 链接后点「解析」\n文件树会显示在这里", 12, MUTED, false);
+        emptyHint.setGravity(Gravity.CENTER);
+        emptyHint.setLineSpacing(dp(4), 1f);
+        fileCard.addView(emptyHint, lp(-1, 0, 1f, 0, 0, 0));
+        list.setEmptyView(emptyHint);
         root.addView(fileCard, lp(-1, 0, 1f, 0, 0, 8));
 
         root.addView(buildStatsCard(), lp(-1, -2, 0, 0, 0, 6));
@@ -147,9 +155,9 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         statusRow.setPadding(dp(4), 0, dp(4), 0);
         statusDot = label("●", 10, SUCCESS, false);
         statusRow.addView(statusDot);
-        statusText = label("就绪", 11.5f, MUTED, false);
+        statusText = label("就绪", 12, MUTED, false);
         statusRow.addView(statusText, lp(0, -2, 1f, 6, 0, 0));
-        root.addView(statusRow, lp(-1, dp(24), 0f, 0, 0, 0));
+        root.addView(statusRow, lp(-1, dp(26), 0f, 0, 0, 0));
     }
 
     private View buildHeader() {
@@ -158,14 +166,15 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         header.setGravity(Gravity.CENTER_VERTICAL);
         android.widget.ImageView icon = new android.widget.ImageView(this);
         icon.setImageResource(R.mipmap.ic_launcher);
-        header.addView(icon, lp(dp(38), dp(38), 0f, 0, 10, 0));
+        header.addView(icon, lp(dp(40), dp(40), 0f, 0, 10, 0));
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
-        titles.addView(label("MegaDL", 21, TEXT, true));
-        titles.addView(label("MEGA 公共链接下载器 · v0.2.0", 11, MUTED, false));
+        titles.addView(label("MegaDL", 20, TEXT, true));
+        titles.addView(label("MEGA 公共链接下载器 · v0.2.1", 11.5f, MUTED, false));
         header.addView(titles, lp(-2, -2, 1f, 0, 0, 0));
         TextView logBtn = action("日志", v -> showLogs());
-        header.addView(logBtn, lp(-2, dp(32), 0f, 0, 0, 0));
+        logBtn.setPadding(dp(10), dp(6), dp(10), dp(6));
+        header.addView(logBtn, lp(-2, dp(34), 0f, 0, 0, 0));
         return header;
     }
 
@@ -175,67 +184,70 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         LinearLayout metrics = new LinearLayout(this);
         metrics.setOrientation(LinearLayout.HORIZONTAL);
         metrics.setGravity(Gravity.CENTER_VERTICAL);
-        metrics.setPadding(0, dp(2), 0, dp(4));
+        metrics.setPadding(0, dp(4), 0, dp(8));
 
         LinearLayout c1 = metricColumn("0", null, "已选文件");
         countValue = (TextView) c1.getTag();
-        metrics.addView(c1, lp(0, dp(46), 1f, 0, 0, 0));
+        metrics.addView(c1, lp(0, dp(52), 1f, 0, 0, 0));
 
         LinearLayout c2 = metricColumn("0B", null, "总大小");
         sizeValue = (TextView) c2.getTag();
-        metrics.addView(c2, lp(0, dp(46), 1f, 0, 0, 0));
+        metrics.addView(c2, lp(0, dp(52), 1f, 0, 0, 0));
 
         LinearLayout c3 = metricColumnSpeed("0", "B/s", "实时速度");
         speedValue = (TextView) c3.getTag();
         speedUnit = (TextView) c3.getTag(R.id.speed_unit);
-        metrics.addView(c3, lp(0, dp(46), 1f, 0, 0, 0));
+        metrics.addView(c3, lp(0, dp(52), 1f, 0, 0, 0));
         card.addView(metrics);
 
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setMax(1000);
         progress.setProgress(0);
         progress.setProgressTintList(android.content.res.ColorStateList.valueOf(ACCENT));
-        card.addView(progress, lp(-1, dp(8), 0f, 0, 6, 0));
+        card.addView(progress, lp(-1, dp(6), 0f, 0, 0, 4));
 
         LinearLayout progressRow = new LinearLayout(this);
         progressRow.setOrientation(LinearLayout.HORIZONTAL);
-        progressText = label("", 11, MUTED, false);
+        progressRow.setGravity(Gravity.CENTER_VERTICAL);
+        progressText = label("", 11.5f, MUTED, false);
         progressText.setText("未开始");
-        progressRow.addView(progressText, lp(0, -2, 1f, 0, 0, 0));
-        pathText = label("", 10, MUTED, false);
+        progressRow.addView(progressText, lp(0, -2, 1f, 0, 8, 0));
+        pathText = label("8 连接 × 3 文件", 10, MUTED, false);
         pathText.setSingleLine(true);
-        pathText.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-        progressRow.addView(pathText, lp(0, -2, 1.2f, 0, 0, 0));
-        card.addView(progressRow, lp(-1, -2, 0, 0, 6, 0));
+        pathText.setGravity(Gravity.END);
+        progressRow.addView(pathText, lp(-2, -2, 0f, 0, 0, 0));
+        card.addView(progressRow, lp(-1, dp(24), 0, 0, 0, 10));
 
         LinearLayout buttons = new LinearLayout(this);
         buttons.setOrientation(LinearLayout.HORIZONTAL);
         downloadButton = pill("下载选中", true, false);
+        downloadButton.setTextSize(14.5f);
         downloadButton.setOnClickListener(v -> startDownload());
-        buttons.addView(downloadButton, lp(0, dp(44), 1f, 0, 0, 8));
+        buttons.addView(downloadButton, lp(0, dp(48), 1.45f, 0, 10, 0));
         stopButton = pill("停止", false, true);
+        stopButton.setTextSize(14.5f);
         stopButton.setOnClickListener(v -> stopDownload());
-        buttons.addView(stopButton, lp(0, dp(44), 1f, 0, 8, 0));
-        card.addView(buttons, lp(-1, -2, 0, 0, 0, 0));
+        buttons.addView(stopButton, lp(0, dp(48), 1f, 0, 0, 0));
+        card.addView(buttons);
 
         LinearLayout pathRow = new LinearLayout(this);
         pathRow.setOrientation(LinearLayout.HORIZONTAL);
         pathRow.setGravity(Gravity.CENTER_VERTICAL);
-        pathRow.setPadding(0, dp(8), 0, 0);
-        pathRow.addView(label("保存到", 10, MUTED, false));
-        TextView savePath = label(saveDir().getAbsolutePath(), 9.5f, MUTED, false);
+        pathRow.setPadding(0, dp(10), 0, 0);
+        pathRow.addView(label("保存到", 10.5f, MUTED, false));
+        TextView savePath = label(saveDir().getAbsolutePath(), 10, MUTED, false);
         savePath.setSingleLine(true);
         savePath.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-        savePath.setPadding(dp(6), 0, dp(6), 0);
+        savePath.setPadding(dp(8), 0, dp(8), 0);
         pathRow.addView(savePath, lp(0, -2, 1f, 0, 0, 0));
-        TextView copyBtn = action("复制", v -> {
+        TextView copyBtn = actionChip("复制", v -> {
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) {
                 cm.setPrimaryClip(ClipData.newPlainText("MegaDL 保存路径", saveDir().getAbsolutePath()));
                 toast("路径已复制");
             }
         });
-        pathRow.addView(copyBtn);
+        pathRow.addView(copyBtn, lp(dp(56), dp(30), 0f, 0, 0, 0));
         card.addView(pathRow);
         return card;
     }
@@ -244,10 +256,10 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
-        TextView v = label(value, 20, TEXT, true);
+        TextView v = label(value, 22, TEXT, true);
         v.setSingleLine(true);
         col.addView(v);
-        col.addView(label(caption, 10.5f, MUTED, false));
+        col.addView(label(caption, 11, MUTED, false));
         col.setTag(v);
         return col;
     }
@@ -259,15 +271,15 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         LinearLayout line = new LinearLayout(this);
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
-        TextView v = label(value, 20, TEXT, true);
+        TextView v = label(value, 22, TEXT, true);
         v.setSingleLine(true);
-        TextView u = label(unit, 10, MUTED, false);
+        TextView u = label(unit, 10.5f, MUTED, false);
         line.addView(v);
         LinearLayout.LayoutParams ulp = new LinearLayout.LayoutParams(-2, -2);
         ulp.leftMargin = dp(3);
         line.addView(u, ulp);
         col.addView(line);
-        col.addView(label(caption, 10.5f, MUTED, false));
+        col.addView(label(caption, 11, MUTED, false));
         col.setTag(v);
         col.setTag(R.id.speed_unit, u);
         return col;
@@ -281,7 +293,10 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         ClipData data = cm.getPrimaryClip();
         if (data != null && data.getItemCount() > 0) {
             CharSequence text = data.getItemAt(0).coerceToText(this);
-            if (text != null) input.setText(text.toString().trim());
+            if (text != null) {
+                input.setText(text.toString().trim());
+                input.setSelection(0);
+            }
         }
     }
 
@@ -504,8 +519,15 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
                     setBusyUi(false);
                     refreshSelectable();
                     adapter.rebuild(roots);
-                    progress.setProgress(1000);
-                    progressText.setText(Mega.fmtSize(batchTotal) + " / " + Mega.fmtSize(batchTotal));
+                    long done = engine == null ? 0 : engine.getTotalDone();
+                    if (stopped) {
+                        int permille = batchTotal <= 0 ? 0 : (int) Math.min(1000, done * 1000 / batchTotal);
+                        progress.setProgress(permille);
+                        progressText.setText(Mega.fmtSize(done) + " / " + Mega.fmtSize(batchTotal));
+                    } else {
+                        progress.setProgress(1000);
+                        progressText.setText(Mega.fmtSize(batchTotal) + " / " + Mega.fmtSize(batchTotal));
+                    }
                     String text;
                     if (stopped) text = "已停止：完成 " + ok + "，失败 " + fail;
                     else text = "完成 " + ok + (fail > 0 ? "，失败 " + fail : "") + (skip > 0 ? "，跳过 " + skip : "");
@@ -623,8 +645,8 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
     private LinearLayout card() {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(12), dp(12), dp(12), dp(12));
-        box.setBackground(round(CARD, 14, 1, BORDER));
+        box.setPadding(dp(14), dp(14), dp(14), dp(14));
+        box.setBackground(round(CARD, 16, 1, BORDER));
         return box;
     }
 
@@ -641,6 +663,17 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         TextView tv = label(text, 11.5f, ACCENT, false);
         tv.setGravity(Gravity.CENTER);
         tv.setPadding(dp(8), dp(4), dp(8), dp(4));
+        tv.setOnClickListener(click);
+        return tv;
+    }
+
+    private TextView actionChip(String text, View.OnClickListener click) {
+        TextView tv = label(text, 12, ACCENT, false);
+        tv.setGravity(Gravity.CENTER);
+        tv.setSingleLine(true);
+        tv.setPadding(dp(4), 0, dp(4), 0);
+        tv.setBackground(round(FIELD, 8, 1, BORDER));
+        tv.setClickable(true);
         tv.setOnClickListener(click);
         return tv;
     }

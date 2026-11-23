@@ -25,7 +25,7 @@ Write-Host "[1/5] 编译资源"
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "aapt2 compile 失败（$LASTEXITCODE）" }
 & $aapt2 link -o "$build\base.apk" -I $androidJar --manifest AndroidManifest.xml `
     --java "$build\gen" --min-sdk-version 24 --target-sdk-version 34 `
-    --version-code 2 --version-name 0.2.0 "$build\res.zip"
+    --version-code 3 --version-name 0.2.1 "$build\res.zip"
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw "aapt2 link 失败（$LASTEXITCODE）" }
 
 Write-Host "[2/5] 编译 Java"

@@ -141,7 +141,7 @@ public class TreeAdapter extends BaseAdapter {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(8), 0, dp(10), 0);
-        row.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42)));
+        row.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
         row.setBackgroundColor(Color.TRANSPARENT);
         row.setMinimumHeight(0);
         row.setTag(new Holder());
@@ -153,32 +153,32 @@ public class TreeAdapter extends BaseAdapter {
 
         h.arrow = textView(14, MUTED, false);
         h.arrow.setGravity(Gravity.CENTER);
-        row.addView(h.arrow, new LinearLayout.LayoutParams(dp(22), dp(42)));
+        row.addView(h.arrow, new LinearLayout.LayoutParams(dp(22), dp(44)));
 
         h.check = textView(20, ACCENT, false);
         h.check.setGravity(Gravity.CENTER);
         h.check.setPadding(dp(2), 0, dp(2), 0);
-        row.addView(h.check, new LinearLayout.LayoutParams(dp(34), dp(42)));
+        row.addView(h.check, new LinearLayout.LayoutParams(dp(36), dp(44)));
 
         h.icon = textView(16, MUTED, false);
         h.icon.setGravity(Gravity.CENTER);
-        row.addView(h.icon, new LinearLayout.LayoutParams(dp(26), dp(42)));
+        row.addView(h.icon, new LinearLayout.LayoutParams(dp(26), dp(44)));
 
         h.name = textView(14, TEXT, false);
         h.name.setSingleLine(true);
         h.name.setEllipsize(TextUtils.TruncateAt.END);
-        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, dp(42), 1f);
+        LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, dp(44), 1f);
         row.addView(h.name, nameLp);
 
         h.size = textView(10.5f, MUTED, false);
         h.size.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        row.addView(h.size, new LinearLayout.LayoutParams(dp(104), dp(42)));
+        row.addView(h.size, new LinearLayout.LayoutParams(dp(92), dp(44)));
 
         h.state = textView(11, MUTED, false);
         h.state.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         h.state.setSingleLine(true);
         h.state.setEllipsize(TextUtils.TruncateAt.END);
-        row.addView(h.state, new LinearLayout.LayoutParams(dp(96), dp(42)));
+        row.addView(h.state, new LinearLayout.LayoutParams(dp(86), dp(44)));
 
         return row;
     }

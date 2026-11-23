@@ -49,5 +49,6 @@ adb shell am start -n com.weizhigao21.megadl/.MainActivity
 
 ## 版本
 
-v0.2.0 / versionCode 2，minSdk 24，targetSdk 34，仅申请 INTERNET 权限。
+v0.2.1 / versionCode 3，minSdk 24，targetSdk 34，仅申请 INTERNET 权限。
 下载服务器可能返回 `http://` 直链，清单里开启了 `usesCleartextTraffic`。
+
