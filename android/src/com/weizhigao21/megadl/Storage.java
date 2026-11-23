@@ -289,9 +289,66 @@ public final class Storage {
         int dot = name.lastIndexOf('.');
         if (dot > 0 && dot + 1 < name.length()) {
             String ext = name.substring(dot + 1).toLowerCase(Locale.US);
+            String known = knownMime(ext);
+            if (known != null) return known;
             String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
             if (mime != null) return mime;
         }
         return "application/octet-stream";
+    }
+
+    /** Android 的 MimeTypeMap 不认识 APE、CUE 等格式，补一张常用映射，避免下载目录把它们标成 BIN 文件。 */
+    private static String knownMime(String ext) {
+        switch (ext) {
+            case "ape":
+                return "audio/x-ape";
+            case "flac":
+                return "audio/flac";
+            case "mp3":
+                return "audio/mpeg";
+            case "wav":
+                return "audio/x-wav";
+            case "m4a":
+                return "audio/mp4";
+            case "aac":
+                return "audio/aac";
+            case "ogg":
+                return "audio/ogg";
+            case "wma":
+                return "audio/x-ms-wma";
+            case "dsf":
+            case "dff":
+                return "audio/x-dsd";
+            case "mp4":
+            case "m4v":
+                return "video/mp4";
+            case "mkv":
+                return "video/x-matroska";
+            case "avi":
+                return "video/x-msvideo";
+            case "mov":
+                return "video/quicktime";
+            case "ts":
+                return "video/mp2t";
+            case "zip":
+                return "application/zip";
+            case "rar":
+                return "application/vnd.rar";
+            case "7z":
+                return "application/x-7z-compressed";
+            case "iso":
+                return "application/x-iso9660-image";
+            case "cue":
+                return "application/x-cue";
+            case "log":
+            case "txt":
+                return "text/plain";
+            case "epub":
+                return "application/epub+zip";
+            case "pdf":
+                return "application/pdf";
+            default:
+                return null;
+        }
     }
 }

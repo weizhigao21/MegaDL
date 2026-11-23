@@ -20,7 +20,7 @@ MEGA 公共链接下载器的安卓原生版，纯 Java + 原生 `Activity` + �
 ## 保存位置
 
 公共下载目录 `/storage/emulated/0/Download/MegaDL`，系统文件管理和相册之外的文件浏览器都能直接看到，
-卸载应用不会删除文件。文件夹结构按 MEGA 分享里的层级保留。
+卸载应用不会删除文件。文件夹结构按 MEGA 分享里的层级保留。APE、CUE、MKV 等系统 MIME 表没有的格式补了映射，文件管理器不再把它们当成 BIN 文件。
 
 Android 10 及以上通过 `MediaStore.Downloads` 写入，不需要任何存储权限，下载中的文件对其它应用不可见
 （`IS_PENDING`），完成或取消时一次性提交/删除。Android 9 及以下退回公共 Download 目录直写，
@@ -53,8 +53,10 @@ adb shell am start -n com.weizhigao21.megadl/.MainActivity
 
 ## 版本
 
-v0.2.4 / versionCode 6，minSdk 24，targetSdk 34，申请 INTERNET 权限；
+v0.2.5 / versionCode 7，minSdk 24，targetSdk 34，申请 INTERNET 权限；
 Android 9 及以下额外申请存储权限。下载服务器可能返回 `http://` 直链，清单里开启了 `usesCleartextTraffic`。
+
+
 
 
 
