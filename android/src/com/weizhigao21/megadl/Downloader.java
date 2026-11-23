@@ -1,9 +1,7 @@
 package com.weizhigao21.megadl;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -81,7 +79,7 @@ public class Downloader {
         }
     }
 
-    public void start(final List<Job> jobs, final File baseDir, final String folderId, final Listener listener) {
+    public void start(final List<Job> jobs, final Storage.Store store, final String folderId, final Listener listener) {
         totalDone.set(0);
         totalBytes.set(0);
         long sum = 0;
@@ -111,7 +109,7 @@ public class Downloader {
                                     }
                                     if (idx >= jobs.size()) break;
                                     Job job = jobs.get(idx);
-                                    int result = downloadOne(job, baseDir, folderId, listener);
+                                    int result = downloadOne(job, store, folderId, listener);
                                     if (result == 1) okCount.incrementAndGet();
                                     else if (result == 2) skipCount.incrementAndGet();
                                     else if (result == 3) {
@@ -142,10 +140,11 @@ public class Downloader {
     }
 
     /** 返回 1 成功、2 跳过、3 取消、0 失败。 */
-    private int downloadOne(Job job, File baseDir, String folderId, Listener listener) {
+    private int downloadOne(Job job, Storage.Store store, String folderId, Listener listener) {
         MegaApi.Node node = job.node;
         node.state = 1;
         node.downloaded = 0;
+        Storage.Target target = null;
         try {
             MegaApi.FileInfo info = api.fileInfo(
                     job.fromFolder ? null : node.handle,
@@ -153,22 +152,13 @@ public class Downloader {
                     job.fromFolder ? folderId : null);
             node.size = info.size;
             node.state = 2;
-            File dir = baseDir;
             String rel = job.relPath == null ? "" : job.relPath;
-            for (String seg : rel.split("/")) {
-                if (!seg.isEmpty()) dir = new File(dir, seg);
-            }
-            if (!dir.exists() && !dir.mkdirs()) throw new Mega.MegaError("无法创建保存目录");
-            File dest = resolveCollision(new File(dir, Mega.safeName(node.name)));
-            File part = new File(dest.getAbsolutePath() + ".part");
+            target = store.create(rel, Mega.safeName(node.name), info.size);
+            final Storage.Target out = target;
 
             if (info.size == 0) {
-                if (!part.createNewFile()) {
-                    // 已存在则直接覆盖同名空文件
-                    part.delete();
-                    part.createNewFile();
-                }
-                if (!part.renameTo(dest)) throw new Mega.MegaError("重命名失败");
+                out.commit();
+                target = null;
                 node.state = 3;
                 node.downloaded = 0;
                 return 1;
@@ -177,9 +167,6 @@ public class Downloader {
             long partSize = effectivePartSize(info.size);
             long totalParts = (info.size + partSize - 1) / partSize;
             int threads = (int) Math.min(connections, totalParts);
-            RandomAccessFile raf = new RandomAccessFile(part, "rw");
-            raf.setLength(info.size);
-            raf.close();
 
             final AtomicInteger nextPart = new AtomicInteger();
             final AtomicBoolean failed = new AtomicBoolean();
@@ -189,7 +176,6 @@ public class Downloader {
             final String url = info.url;
             final byte[] key = node.key;
             final long size = info.size;
-            final File partFile = part;
             final ChunkSink sink = new ChunkSink() {
                 @Override
                 public void onChunk(long bytes) {
@@ -213,7 +199,7 @@ public class Downloader {
                                 long start = idx * partSize;
                                 long end = Math.min(start + partSize, size) - 1;
                                 try {
-                                    fetchPart(url, key, start, end, partFile, localCancel, sink);
+                                    fetchPart(url, key, start, end, out, localCancel, sink);
                                 } catch (Mega.MegaError e) {
                                     synchronized (failLock) {
                                         if (errHolder[0] == null) errHolder[0] = e.getMessage();
@@ -239,27 +225,33 @@ public class Downloader {
             pool.shutdownNow();
 
             if (cancelled) {
+                out.abort();
+                target = null;
                 node.state = 5;
                 return 3;
             }
             if (failed.get() || errHolder[0] != null) {
+                out.abort();
+                target = null;
                 node.state = 4;
                 node.error = errHolder[0] == null ? "分块下载失败" : errHolder[0];
                 if (listener != null) listener.onLog("失败：" + node.name + " - " + node.error);
                 return 0;
             }
-            if (dest.exists()) dest.delete();
-            if (!part.renameTo(dest)) throw new Mega.MegaError("重命名失败");
+            out.commit();
+            target = null;
             node.state = 3;
             node.downloaded = size;
-            if (listener != null) listener.onLog("完成：" + node.name + " → " + dest.getAbsolutePath());
+            if (listener != null) listener.onLog("完成：" + node.name + " → " + out.path());
             return 1;
         } catch (Mega.MegaError e) {
+            if (target != null) target.abort();
             node.state = 4;
             node.error = e.getMessage();
             if (listener != null) listener.onLog("失败：" + node.name + " - " + e.getMessage());
             return 0;
         } catch (Exception e) {
+            if (target != null) target.abort();
             node.state = 4;
             node.error = e.getClass().getSimpleName();
             if (listener != null) listener.onLog("失败：" + node.name + " - " + e.getClass().getSimpleName());
@@ -274,29 +266,7 @@ public class Downloader {
         return aligned;
     }
 
-    private File resolveCollision(File dest) {
-        if (!occupied(dest)) return dest;
-        String name = dest.getName();
-        String stem = name;
-        String ext = "";
-        int dot = name.lastIndexOf('.');
-        if (dot > 0) {
-            stem = name.substring(0, dot);
-            ext = name.substring(dot);
-        }
-        File parent = dest.getParentFile();
-        for (int i = 1; i < 10000; i++) {
-            File candidate = new File(parent, stem + " (" + i + ")" + ext);
-            if (!occupied(candidate)) return candidate;
-        }
-        return dest;
-    }
-
-    private static boolean occupied(File dest) {
-        return dest.exists() || new File(dest.getAbsolutePath() + ".part").exists();
-    }
-
-    private void fetchPart(String rawUrl, byte[] key, long start, long end, File partFile,
+    private void fetchPart(String rawUrl, byte[] key, long start, long end, Storage.Target sinkTarget,
                            AtomicBoolean localCancel, ChunkSink sink) throws Mega.MegaError {
         List<String> candidates = new ArrayList<>();
         candidates.add(rawUrl);
@@ -309,11 +279,10 @@ public class Downloader {
         String last = "";
         for (int attempt = 0; attempt < 5; attempt++) {
             if (cancelled || localCancel.get()) throw new Mega.MegaError("已取消");
-            String target = candidates.get(attempt % candidates.size());
+            String urlCandidate = candidates.get(attempt % candidates.size());
             HttpURLConnection conn = null;
-            RandomAccessFile raf = null;
             try {
-                conn = (HttpURLConnection) new URL(target).openConnection();
+                conn = (HttpURLConnection) new URL(urlCandidate).openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Range", "bytes=" + start + "-" + end);
                 conn.setRequestProperty("User-Agent", "MegaDL-Android/0.2");
@@ -326,8 +295,6 @@ public class Downloader {
                 if (status != 200 && status != 206) {
                     last = "HTTP " + status;
                 } else {
-                    raf = new RandomAccessFile(partFile, "rw");
-                    raf.seek(start);
                     InputStream in = conn.getInputStream();
                     byte[] buf = new byte[64 * 1024];
                     long pos = 0;
@@ -347,7 +314,7 @@ public class Downloader {
                         }
                         // 每个块都从 16 字节对齐的绝对偏移开始，CTR 才能正确接续
                         byte[] plain = Mega.ctrDecrypt(buf, key, start + pos, got);
-                        raf.write(plain, 0, got);
+                        sinkTarget.write(plain, got, start + pos);
                         sink.onChunk(got);
                         pos += got;
                     }
@@ -369,12 +336,6 @@ public class Downloader {
                 String msg = e.getMessage() == null ? "" : e.getMessage();
                 last = "读取失败：" + e.getClass().getSimpleName() + (msg.isEmpty() ? "" : " " + msg);
             } finally {
-                if (raf != null) {
-                    try {
-                        raf.close();
-                    } catch (IOException ignored) {
-                    }
-                }
                 if (conn != null) conn.disconnect();
             }
             sleep(120L * (1L << Math.min(attempt, 4)) + (System.nanoTime() % 90));

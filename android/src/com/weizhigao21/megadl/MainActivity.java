@@ -5,12 +5,15 @@ import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.Manifest;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.util.TypedValue;
@@ -26,7 +29,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -65,6 +67,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
     private TextView pathText;
 
     private Downloader engine;
+    private Storage.Store store;
     private volatile boolean busy;
     private volatile boolean parsing;
     private long batchTotal;
@@ -78,6 +81,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         super.onCreate(savedInstanceState);
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
+        store = Storage.create(this);
         buildUi();
         refreshSelectable();
     }
@@ -170,7 +174,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.addView(label("MegaDL", 20, TEXT, true));
-        titles.addView(label("MEGA 公共链接下载器 · v0.2.2", 11.5f, MUTED, false));
+        titles.addView(label("MEGA 公共链接下载器 · v0.2.3", 11.5f, MUTED, false));
         header.addView(titles, lp(-2, -2, 1f, 0, 0, 0));
         TextView logBtn = action("日志", v -> showLogs());
         logBtn.setPadding(dp(10), dp(6), dp(10), dp(6));
@@ -235,7 +239,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         pathRow.setGravity(Gravity.CENTER_VERTICAL);
         pathRow.setPadding(0, dp(10), 0, 0);
         pathRow.addView(label("保存到", 10.5f, MUTED, false));
-        TextView savePath = label(saveDir().getAbsolutePath(), 10, MUTED, false);
+        TextView savePath = label(store.label(), 10, MUTED, false);
         savePath.setSingleLine(true);
         savePath.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         savePath.setPadding(dp(8), 0, dp(8), 0);
@@ -243,7 +247,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         TextView copyBtn = actionChip("复制", v -> {
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) {
-                cm.setPrimaryClip(ClipData.newPlainText("MegaDL 保存路径", saveDir().getAbsolutePath()));
+                cm.setPrimaryClip(ClipData.newPlainText("MegaDL 保存路径", Storage.PUBLIC_PATH));
                 toast("路径已复制");
             }
         });
@@ -470,15 +474,14 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
 
     // ------------------------------------------------------------ 下载
 
-    private File saveDir() {
-        File dir = getExternalFilesDir("MegaDL");
-        if (dir == null) dir = new File(getFilesDir(), "MegaDL");
-        if (!dir.exists()) dir.mkdirs();
-        return dir;
-    }
-
     private void startDownload() {
         if (busy || parsing) return;
+        if (Build.VERSION.SDK_INT < 29
+                && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
+            toast("需要存储权限才能写入 Download 目录");
+            return;
+        }
         List<MegaApi.Node> picked = selectedFiles();
         if (picked.isEmpty()) {
             toast("先勾选要下载的文件");
@@ -504,7 +507,7 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         setStatus("开始下载 " + jobs.size() + " 个文件", ACCENT);
         appendLogs(java.util.Collections.singletonList("开始下载 " + jobs.size() + " 个文件（8 连接 × 3 文件，4MB 分块）"));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        engine.start(jobs, saveDir(), link.kind == Mega.Kind.FOLDER ? link.id : null, new Downloader.Listener() {
+        engine.start(jobs, store, link.kind == Mega.Kind.FOLDER ? link.id : null, new Downloader.Listener() {
             @Override
             public void onLog(String line) {
                 appendLogs(java.util.Collections.singletonList(line));
@@ -722,6 +725,15 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 100 && grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startDownload();
+        }
+    }
+
+    @Override
     public void onBackPressed() {
         if (busy) {
             new AlertDialog.Builder(this)
@@ -738,4 +750,5 @@ public class MainActivity extends Activity implements TreeAdapter.Host {
         }
     }
 }
+
 
